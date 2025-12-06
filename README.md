@@ -4,16 +4,19 @@ Export BigQuery VIEW SQL definitions into a Dataform project with a predictable 
 
 This README focuses on using the tool. For development setup and project conventions, see DEVELOPMENT.md.
 
+📦 PyPI: https://pypi.org/project/dataform-view-migrator/
+💻 GitHub: https://github.com/elvainch/dataform-view-migrator
+
 ## Prerequisites
 - Python 3.10+
 - Auth via Application Default Credentials (ADC):
   - Set `GOOGLE_APPLICATION_CREDENTIALS` to a service account JSON, or
   - Run `gcloud auth application-default login`
-- Optional: `uv` to run without manually activating a venv
 
 ## Install
-- With `uv` (recommended): `uv sync`
-- Or use your existing Python 3.10+ environment and install deps from `pyproject.toml`
+```bash
+pip install dataform-view-migrator
+```
 
 ## Commands
 
