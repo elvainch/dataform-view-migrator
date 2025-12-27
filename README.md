@@ -1,97 +1,135 @@
-# dataform-view-migrator
+# 🚚 dataform-view-migrator
 
-Export BigQuery VIEW SQL definitions into a Dataform project with a predictable layout and safe write policies.
+**Export BigQuery VIEW definitions into Dataform with ease.** 🚀
 
-This README focuses on using the tool. For development setup and project conventions, see DEVELOPMENT.md.
+`dataform-view-migrator` is a handy CLI tool that discovers your BigQuery views and turns them into Dataform-ready `.sqlx` or `.sql` files. It handles complex folder structures, provides safe backup policies, and automatically generates Dataform configuration headers.
 
-📦 PyPI: https://pypi.org/project/dataform-view-migrator/
-💻 GitHub: https://github.com/elvainch/dataform-view-migrator
+---
 
-## Prerequisites
-- Python 3.10+
-- Auth via Application Default Credentials (ADC):
-  - Set `GOOGLE_APPLICATION_CREDENTIALS` to a service account JSON, or
-  - Run `gcloud auth application-default login`
+### ⚡ Super Quickstart
 
-## Install
-```bash
-pip install dataform-view-migrator
+1. **Install**
+   ```bash
+   pip install dataform-view-migrator
+   ```
+
+2. **Authenticate**
+   ```bash
+   gcloud auth application-default login
+   ```
+
+3. **Migrate!**
+   ```bash
+   dataform-view-migrator migrate-views --source-project my-project --dest ./my-dataform-repo
+   ```
+
+#### 💡 Example Input & Output
+
+**BigQuery View (`my_project.my_dataset.daily_sales`):**
+```sql
+SELECT date, SUM(amount) as total_sales
+FROM `my_project.my_dataset.raw_transactions`
+GROUP BY 1
 ```
 
-## Commands
-
-- `dataform-view-migrator` (or `python -m dataform_view_migrator`): prints quick usage and version
-- `dataform-view-migrator ping-bq [--project <id>] [--location <REGION>] [--config <toml>]`
-  - Verifies auth and prints the resolved BigQuery project. If `--location` is provided (or set in TOML), it performs a regional INFORMATION_SCHEMA dry-run; otherwise it lists datasets to verify access.
-- `dataform-view-migrator migrate-views [options]`
-  - Discovers BigQuery views and writes files into the Dataform repo path.
-
-Run `--help` on any command for complete options.
-
-## Configuration
-
-- Copy `dataform_view_migrator.example.toml` to `dataform_view_migrator.toml` and edit.
-- CLI flags override TOML values when explicitly provided.
-
-Key options (flag → TOML):
-- `--source-project` → `source_project` (required via config or flag)
-- `--dest <path>` → `dest` (required via config or flag)
-- `--datasets a,b` → `datasets_include = ["a","b"]`
-- `--exclude-datasets x,y` → `datasets_exclude = ["x","y"]`
-- `--location US` → `location = "US"`
-- `--ext sql|sqlx` → `ext = "sqlx"` (default `sqlx`)
-- `--overwrite skip|backup|force` → `overwrite = "skip"` (default `skip`)
-- `--add-dataform-header/--no-add-dataform-header` → `add_dataform_header = true|false`
-- `--dry-run/--no-dry-run` → `dry_run = false`
-- Optional dataset folder remapping: `dataset_folders = { src = "src_views" }`
-
-## Output Layout
-
-- Files are written under `dest/<dataset>/<view_name>.<ext>` by default.
-- Use `dataset_folders` in TOML to map dataset names to custom subfolders.
-- Extension `ext` is `sqlx` by default; set `--ext sql` for plain SQL files.
-
-### Dataform Header (optional)
-When enabled, each file is prefixed with a Dataform config block:
-
-```
+**Generated Dataform File (`my-dataform-repo/my_dataset/daily_sales.sqlx`):**
+```sql
 config {
   type: "view",
-  schema: "<dataset>",
-  name: "<view>"
-  # optional fields below when configured
-  # description: "...",
-  # tags: ["..."]
+  schema: "my_dataset",
+  name: "daily_sales",
+  description: "CREATED BY DATAFORM.",
+  tags: ["my-tag","another-tag"],
 }
+
+SELECT date, SUM(amount) as total_sales
+FROM `my_project.my_dataset.raw_transactions`
+GROUP BY 1
 ```
 
-Control via `--add-dataform-header` (or `add_dataform_header = true`).
-Customize with `dataform_header.description` and `dataform_header.tags` in TOML.
+---
 
-## Overwrite Policy
+## ✨ Features
 
-- `skip` (default): do not modify existing files; they are reported as `skipped`.
-- `backup`: if a file exists, move it to `<name>.<ext>.bak[.N]` and write the new content.
-- `force`: overwrite files in place.
+- 🔍 **Auto-discovery**: Find all views across multiple datasets automatically.
+- 📂 **Flexible Layout**: Map BigQuery datasets to custom subfolders in your Dataform project.
+- 🛡️ **Safe Writes**: Choose to `skip`, `backup`, or `force` overwrite existing files.
+- 📝 **Dataform Headers**: Automatically adds `config { type: "view", ... }` to your `.sqlx` files.
+- 🧪 **Dry Run**: Preview exactly what will happen before making any changes.
+- 🚀 **Fast**: Uses `INFORMATION_SCHEMA` for high-performance discovery in large projects.
 
-All modes support `--dry-run` to preview actions as `would-create`, `would-update`, or `would-skip` without writing.
+---
 
-## Examples
+## 🛠 Prerequisites
 
-- Verify auth/project using TOML defaults:
-  - `uv run dataform-view-migrator ping-bq --config dataform_view_migrator.toml`
-- Migrate all views to a Dataform repo (US region, backup existing):
-  - `uv run dataform-view-migrator migrate-views --source-project my-proj --dest ../dataform --location US --overwrite backup`
-- Include specific datasets and emit plain SQL:
-  - `uv run dataform-view-migrator migrate-views --source-project my-proj --dest ../dataform --datasets sales,finance --ext sql`
-- Dry-run to review changes only:
-  - `uv run dataform-view-migrator migrate-views --config dataform_view_migrator.toml --dry-run`
+- Python 3.10+
+- GCP Authentication via Application Default Credentials (ADC).
 
-## Output Report
+---
 
-After migration, a table of per-view results is printed (dataset, view, action, path, error) followed by a compact summary grouped by action. A non-zero exit code is returned if any views fail.
+## 📖 Commands
 
-## Development
+- **`ping-bq`**: 📡 Verify your authentication and BigQuery access.
+  ```bash
+  dataform-view-migrator ping-bq --project my-project
+  ```
+- **`migrate-views`**: 🚜 The main event. Discovers and exports views.
+  ```bash
+  dataform-view-migrator migrate-views [options]
+  ```
 
-See DEVELOPMENT.md for environment setup, linting/formatting, tests, and project layout.
+Run `--help` on any command for a full list of available options.
+
+---
+
+## ⚙️ Configuration
+
+While you can use CLI flags, using a TOML file is often easier for recurring tasks. Copy `dataform_view_migrator.example.toml` to `dataform_view_migrator.toml` and customize it.
+
+### Available Keys
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `source_project` | `string` | | **Required.** The GCP project ID containing your views. |
+| `dest` | `string` | | **Required.** Local path to your Dataform repository. |
+| `datasets_include` | `list` | `[]` | List of datasets to process. If empty, processes all. |
+| `datasets_exclude` | `list` | `[]` | List of datasets to ignore. |
+| `location` | `string` | | BigQuery region (e.g., `US`, `EU`). Required for high-performance discovery. |
+| `ext` | `string` | `sqlx` | File extension: `sqlx` or `sql`. |
+| `overwrite` | `string` | `skip` | Policy: `skip`, `backup` (renames existing), or `force`. |
+| `add_dataform_header` | `boolean` | `true` | Prepend `config {}` block to files. |
+| `dry_run` | `boolean` | `false` | If `true`, only show what would happen. |
+| `dataform_header.description`| `string` | | Optional description for the Dataform config block. |
+| `dataform_header.tags` | `list` | `[]` | Optional list of tags for the Dataform config block. |
+| `dataset_folders` | `dict` | | Map dataset IDs to custom subfolders (e.g., `ds_id = "path/to/dir"`). |
+
+---
+
+## 📂 Output Layout
+
+By default, files are saved as `dest/<dataset>/<view_name>.sqlx`.
+You can remap dataset names to specific folders using the `dataset_folders` setting in your config:
+
+```toml
+[dataset_folders]
+raw_data = "sources/raw"
+analytics = "definitions/reporting"
+```
+
+---
+
+## 🤝 Contributing & Development
+
+We love contributions! Please check out [DEVELOPMENT.md](DEVELOPMENT.md) for setup instructions, linting rules, and testing guidelines.
+
+---
+
+## 🔗 Links
+
+- 📦 **PyPI**: [https://pypi.org/project/dataform-view-migrator/](https://pypi.org/project/dataform-view-migrator/)
+- 💻 **GitHub**: [https://github.com/elvainch/dataform-view-migrator](https://github.com/elvainch/dataform-view-migrator)
+- 📝 **License**: MIT
+
+---
+Developed by Alan Vainsencher.
 
